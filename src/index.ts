@@ -32,7 +32,7 @@ mongoose
   });
 
 // Routes
-app.get("/", (req: Request, res: Response) => {
+app.get("/health", (req: Request, res: Response) => {
   res.send("Hello World");
 });
 
