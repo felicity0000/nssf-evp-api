@@ -57,18 +57,19 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
         department: user.department,
         role: user.role,
       },
-      process.env.JWT_SECRET as string, // Ensure this exists in .env
+      process.env.JWT_SECRET as string,
       { expiresIn: "1h" }
     );
 
-    // 🔥 Set the token in an HTTP-only cookie
+    const isProduction = process.env.NODE_ENV === 'production';
+
     res.cookie("auth_token", token, {
       httpOnly: true,
-      secure: false,
-      expires: new Date(Date.now() + 3600000), // 1 hour from now
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      expires: new Date(Date.now() + 3600000),
     });
 
-    // Send user data in response
     res.status(200).json({
       message: "Login successful",
       user: {
@@ -77,7 +78,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
         department: user.department,
         role: user.role,
       },
-      token: token, // Add the token in the response body
+      token: token,
     });
   } catch (error) {
     console.error(error);
