@@ -7,7 +7,7 @@ import userRoutes from "./routes/users";
 import feedbackRoutes from "./routes/feedbacks";
 import adminRoutes from "./routes/admin";
 import problemSolverRoutes from "./routes/problemSolver"
-import path from "path";
+//import path from "path";
 
 const app = express();
 
@@ -32,8 +32,13 @@ mongoose
     console.error("Error connecting to MongoDB ❌", error);
   });
 
-// Serve static files from the 'public' directory
-app.use(express.static(path.join(__dirname, '../../nssf-evp-client/dist')));
+// Serve static files from the "public" folder (outside the src folder)
+// app.use(express.static(path.join(__dirname, "..", "public")));
+
+// // Handle React routing, return the React app for unknown routes
+// app.get("*", (req:Request, res:Response) => {
+//   res.sendFile(path.join(__dirname, "..","public", "index.html"));
+// });
 
 // Routes
 app.get("/health", (req: Request, res: Response) => {
