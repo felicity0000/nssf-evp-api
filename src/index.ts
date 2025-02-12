@@ -7,6 +7,7 @@ import userRoutes from "./routes/users";
 import feedbackRoutes from "./routes/feedbacks";
 import adminRoutes from "./routes/admin";
 import problemSolverRoutes from "./routes/problemSolver"
+import path from "path";
 
 const app = express();
 
@@ -30,6 +31,9 @@ mongoose
   .catch((error) => {
     console.error("Error connecting to MongoDB ❌", error);
   });
+
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, '../../nssf-evp-client/dist')));
 
 // Routes
 app.get("/health", (req: Request, res: Response) => {
