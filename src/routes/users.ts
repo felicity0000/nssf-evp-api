@@ -115,9 +115,11 @@ router.get("/validate-token", verifyToken, (req: Request, res: Response) => {
 
 router.post("/logout", (req: Request, res: Response) => {
   res.cookie("auth_token", "", {
-    expires: new Date(0),
+    expires: new Date(0), // Expire the cookie immediately
+    httpOnly: true,        // Ensure cookie is not accessible via JS
+    secure: process.env.NODE_ENV === "production", // Ensure it's sent over HTTPS in production
   });
-  res.send();
+  res.status(204).send(); // Send a "No Content" status to indicate success
 });
 
 // Get all problem solvers
