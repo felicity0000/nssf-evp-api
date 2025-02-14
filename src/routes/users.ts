@@ -88,15 +88,29 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
 
 
 router.get("/validate-token", verifyToken, (req: Request, res: Response) => {
-  // Assuming `req.userId` gives you the logged-in user
-  const user = Users.find((user) =>user.id === req.userId && user.role === req.role);
-
-  if (user) {
-    res.status(200).json({ role: user.role, user });
-  } else {
-    res.status(404).json({ message: "User not found" });
+  if (!req.userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
   }
+
+  const user = Users.find((user) => user.id === req.userId);
+
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
+
+  res.status(200).json({
+    role: user.role,
+    user: {
+      id: user.id,
+      username: user.username,
+      department: user.department,
+      role: user.role,
+    },
+  });
 });
+
 
 
 router.post("/logout", (req: Request, res: Response) => {

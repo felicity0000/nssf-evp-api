@@ -4,6 +4,7 @@ import "dotenv/config";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 import userRoutes from "./routes/users";
+import moodRoutes from "./routes/mood";
 import feedbackRoutes from "./routes/feedbacks";
 import adminRoutes from "./routes/admin";
 import problemSolverRoutes from "./routes/problemSolver"
@@ -46,9 +47,10 @@ app.get("/health", (req: Request, res: Response) => {
 });
 
 app.use("/api/users", userRoutes);
-app.use("/api/feedbacks", feedbackRoutes)
+app.use("/api/moods", moodRoutes);
+app.use("/api/feedbacks", feedbackRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/problem-solver", problemSolverRoutes)
+app.use("/api/problem-solver", problemSolverRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5000;
