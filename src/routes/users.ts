@@ -118,6 +118,8 @@ router.post("/logout", (req: Request, res: Response) => {
     expires: new Date(0), // Expire the cookie immediately
     httpOnly: true,        // Ensure cookie is not accessible via JS
     secure: process.env.NODE_ENV === "production", // Ensure it's sent over HTTPS in production
+    sameSite: "strict", // or "lax" depending on your use case
+    domain: "https://nssf-evp-client.vercel.app", // Add this if needed
   });
   res.status(204).send(); // Send a "No Content" status to indicate success
 });
