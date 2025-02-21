@@ -2,7 +2,7 @@ export type User = {
     id: string;
     username: string;
     department: string;
-    role: "employee" | "problem_solver" | "admin";  // Enum for the role
+    role: "employee" | "admin";  // Enum for the role
     email?: string;  // Optional fields for specific roles
     contact?: string;  // Optional fields for specific roles
   };
@@ -12,19 +12,12 @@ export type User = {
     role: "employee";
   };
   
-  export type ProblemSolver = User & {
-    role: "problem_solver";
-    email: string;
-    contact: string;
-  };
-  
   export type Admin = User & {
     role: "admin";
-    email: string;
   };
   
   // Union type for all users
-  export type AllUsers = Employee | ProblemSolver | Admin;
+  export type AllUsers = Employee | Admin;
 
   // UserType.ts
 export type UserType = {

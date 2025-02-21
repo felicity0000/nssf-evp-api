@@ -5,6 +5,53 @@ import verifyToken from "../middleware/auth";
 
 const router = express.Router();
 
+// fetch all concerns
+router.get("/all-feedbacks", async (Req: Request, Res: Response) => {
+  try {
+    const feedbacks = await feedbackModel.find({});
+    Res.status(201).json({ success: true, feedbacks });
+    return;
+  } catch (error) {
+    console.log(error);
+    Res.status(500).json({ message: "Error fetching feedbacks", error });
+    return;
+  }
+});
+
+// Admin approves a feedback
+router.post("/:id/approval", verifyToken, async (Req: Request, Res: Response) => {
+  try {
+    const { id:feedbackId } = Req.params;
+    
+    // Make sure the logged-in user is an admin
+    if (Req.role !== "admin") {
+      Res.status(403).send("Access denied. Only admins can approve feedback.");
+      return;
+    }
+
+    // Find the feedback by ID
+    const feedback = await feedbackModel.findById(feedbackId);
+    if (!feedback) {
+      Res.status(404).send("Feedback not found.");
+      return;
+    }
+
+    // Update the approval status
+    feedback.approval = true;
+
+    // Save the updated feedback
+    await feedback.save();
+
+    // Respond with the updated feedback
+    Res.status(200).json({ message: "Feedback approved successfully", feedback });
+    return;
+  } catch (error) {
+    console.error("❌ Error approving feedback:", error);
+    Res.status(500).send("Internal Server Error");
+    return;
+  }
+});
+
 // Admin assigns a problem solver to a feedback
 router.post("/", verifyToken, async (Req: Request, Res: Response) => {
   const { feedbackId, assignedTo } = Req.body;

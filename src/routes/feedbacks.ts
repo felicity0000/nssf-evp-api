@@ -5,20 +5,9 @@ import verifyToken from "../middleware/auth";
 
 const router = express.Router();
 
-// Helper function to fetch feedbacks by status
-const fetchFeedbacksByStatus = async (status: string) => {
-  try {
-    return await feedbackModel.find({ status });
-  } catch (error) {
-    throw error;
-  }
-};
-
 // create a feedback concern
-router.post("/", verifyToken, async (Req: Request, Res: Response) => {
-  // Find the user based on the token or session
-  const userId = Req.userId; // Assuming you have a user ID in the token
-
+router.post("/", verifyToken, async (req: Request, res: Response) => {
+  const userId = req.userId; // Extracted from verifyToken middleware
   const {
     title,
     department,
@@ -28,11 +17,8 @@ router.post("/", verifyToken, async (Req: Request, Res: Response) => {
     endDate,
     isAnonymous,
     name,
-  } = Req.body;
+  } = req.body;
 
-  // Default status to "Pending"
-  const status = "Pending";
-  const assignedTo = "";
   try {
     const newFeedback = new feedbackModel({
       title,
@@ -42,28 +28,30 @@ router.post("/", verifyToken, async (Req: Request, Res: Response) => {
       validity: { startDate, endDate },
       isAnonymous,
       name,
-      status,
-      assignedTo,
+      status: "Pending",
+      assignedTo: "",
+      approval: false, // 🔔 Default approval state: false
       likes: 0,
       dislikes: 0,
       userId,
     });
 
     await newFeedback.save();
-    Res.status(201).json({
-      message: "Feedback created successfully",
+
+    res.status(201).json({ 
+      message: "✅ Feedback created successfully",
       feedback: newFeedback,
     });
-    return;
   } catch (error) {
-    console.error(error);
+    console.error("❌ Error creating feedback:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 
-// fetch all concerns
-router.get("/", async (Req: Request, Res: Response) => {
+// fetch all all approved concerns
+router.get("/approved", async (Req: Request, Res: Response) => {
   try {
-    const feedbacks = await feedbackModel.find({});
+    const feedbacks = await feedbackModel.find({approval: true});
     Res.status(201).json({ success: true, feedbacks });
     return;
   } catch (error) {
@@ -92,7 +80,7 @@ router.get("/feedback/:id", async(Req:Request, Res:Response):Promise<void> => {
 router.get("/pending", async (Req: Request, Res: Response): Promise<void> => {
   try {
     // Fetch feedbacks that are marked as "Pending"
-    const feedbacks = await feedbackModel.find({ status: "Pending" });
+    const feedbacks = await feedbackModel.find({ status: "Pending", approval:true });
     
     // Check if feedback exists
     if (!feedbacks) {
@@ -143,55 +131,140 @@ router.get("/resolved", async(Req:Request, Res:Response) => {
 });
 
 // Like feedback
-router.post("/:id/like", async(Req:Request, Res:Response) => {
+router.post("/:id/like", verifyToken, async (req: Request, res: Response) => {
   try {
-    const feedback = await feedbackModel.findById(Req.params.id);
+    const { id: feedbackId } = req.params;
+    const username = req.username; // Set by `verifyToken`
+
+    const feedback = await feedbackModel.findById(feedbackId);
+
     if (!feedback) {
-      Res.status(404).send('Feedback not found');
+      res.status(404).json({ message: "Feedback not found." });
       return;
     }
-    
-    feedback.likes += 1;
-    await feedback.save();
-    Res.status(200).send(feedback);
-  } catch(error) {
-    console.log(error);
+
+    // 🚫 If user has already disliked, remove dislike and add like
+    if (feedback.dislikedBy.includes(username)) {
+      await feedbackModel.findByIdAndUpdate(
+        feedbackId,
+        {
+          $inc: { dislikes: -1, likes: 1 }, // Decrease dislikes and increase likes
+          $pull: { dislikedBy: username }, // Remove from dislikedBy
+          $addToSet: { likedBy: username }, // Add to likedBy
+        },
+        { new: true }
+      );
+      res.status(200).json({ message: "Like added and dislike removed." });
+      return;
+    }
+
+    // 🚫 User has already liked the feedback
+    if (feedback.likedBy.includes(username)) {
+       res.status(400).json({ message: "You have already liked this feedback." });
+       return;
+    }
+
+    // ✅ Update likes only if user hasn't liked yet
+    const updatedFeedback = await feedbackModel.findByIdAndUpdate(
+      feedbackId,
+      {
+        $inc: { likes: 1 },
+        $addToSet: { likedBy: username },
+      },
+      { new: true }
+    );
+
+    res.status(200).json(updatedFeedback);
+  } catch (error) {
+    console.error("❌ Like Error:", error);
+    res.status(500).send("Internal Server Error");
   }
 });
 
-// dislike feedback
-router.post("/:id/dislike", async(Req:Request, Res:Response) => {
+
+
+
+// Dislike feedback
+router.post("/:id/dislike", verifyToken, async (req: Request, res: Response) => {
   try {
-    const feedback = await feedbackModel.findById(Req.params.id);
+    const { id: feedbackId } = req.params;
+    const username = req.username; // From verifyToken middleware
+
+    const feedback = await feedbackModel.findById(feedbackId);
+
     if (!feedback) {
-      Res.status(404).send('Feedback not found');
+      res.status(404).json({ message: "Feedback not found." });
       return;
     }
-    
-    feedback.dislikes += 1;
-    await feedback.save();
-    Res.status(200).send(feedback);
-  } catch(error) {
-    console.log(error);
+
+    // 🚫 If user has already liked, remove like and add dislike
+    if (feedback.likedBy.includes(username)) {
+      await feedbackModel.findByIdAndUpdate(
+        feedbackId,
+        {
+          $inc: { likes: -1, dislikes: 1 }, // Decrease likes and increase dislikes
+          $pull: { likedBy: username }, // Remove from likedBy
+          $addToSet: { dislikedBy: username }, // Add to dislikedBy
+        },
+        { new: true }
+      );
+      res.status(200).json({ message: "Dislike added and like removed." });
+      return;
+    }
+
+    // 🚫 User has already disliked the feedback
+    if (feedback.dislikedBy.includes(username)) {
+      res.status(400).json({ message: "You have already disliked this feedback." });
+      return;
+    }
+
+    // ✅ Update dislikes only if user hasn't disliked yet
+    const updatedFeedback = await feedbackModel.findByIdAndUpdate(
+      feedbackId,
+      {
+        $inc: { dislikes: 1 },
+        $addToSet: { dislikedBy: username },
+      },
+      { new: true }
+    );
+
+    res.status(200).json(updatedFeedback);
+  } catch (error) {
+    console.error("❌ Dislike Error:", error);
+    res.status(500).send("Internal Server Error");
   }
 });
+
+
 
 // Add a comment to a feedback
-router.post("/:id/comment", async(Req:Request, Res:Response) => {
+router.post("/:id/comment", verifyToken, async (Req: Request, Res: Response) => {
   try {
-    const {userId, comment } = Req.body;
+    const { comment } = Req.body; // No need to pass userId or username, they come from the token
+    const { userId, username } = Req; // Extracted from the token via middleware
+
     const feedback = await feedbackModel.findById(Req.params.id);
     if (!feedback) {
       Res.status(404).send('Feedback not found');
       return;
     }
-    feedback.comments.push({ userId, comment });
+
+    // Add the comment with userId and username to the feedback
+    feedback.comments.push({ userId, username, comment });
+
+    // Save the updated feedback
     await feedback.save();
+
+    // Respond with the updated feedback
     Res.status(200).send(feedback);
-  } catch(error) {
+    return;
+  } catch (error) {
     console.log(error);
+    Res.status(500).send('Internal Server Error');
+    return;
   }
 });
+
 
 router.get("/feedback-stats", async (Req: Request, Res: Response) => {
   try {

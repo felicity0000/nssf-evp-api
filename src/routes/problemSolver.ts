@@ -50,7 +50,7 @@ router.get(
   async (Req: Request, Res: Response): Promise<void> => {
     const { username, role } = Req;
     try {
-      if (role !== "problem_solver") {
+      if (role !== "employee") {
         Res.status(403).json({
           success: false,
           message:

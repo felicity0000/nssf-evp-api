@@ -126,7 +126,7 @@ router.post("/logout", (req: Request, res: Response) => {
 // Get all problem solvers
 router.get("/problem-solvers", async (Req:Request, Res:Response) => {
   try {
-    const problemSolvers = Users.filter((user) => user.role === "problem_solver"); // Filter only problem solvers
+    const problemSolvers = Users.filter((user) => user.role === "employee"); // Filter only problem solvers
     Res.status(200).json({ success: true, problemSolvers });
   } catch (error) {
     console.error("Error fetching problem solvers:", error);

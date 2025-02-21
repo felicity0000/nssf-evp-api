@@ -15,8 +15,11 @@ interface FeedbackDocument extends Document {
   status: string;
   likes: number;
   dislikes: number;
-  comments: Array<{ userId: string; comment: string }>; // Added comments array
+  likedBy: string[];    // Users who liked
+  dislikedBy: string[]; // Users who disliked
+  comments: Array<{ userId: string; username:string; comment: string }>;
   userId: string;
+  approval: boolean;    // New approval field
 }
 
 const feedbackSchema = new mongoose.Schema<FeedbackDocument>(
@@ -35,12 +38,15 @@ const feedbackSchema = new mongoose.Schema<FeedbackDocument>(
     status: { type: String, default: 'Pending' },
     likes: { type: Number, default: 0 },
     dislikes: { type: Number, default: 0 },
-    comments: { type: [{ userId: String, comment: String }], default: [] }, // Comments field
+    likedBy: { type: [String], default: [], index:true },    // Track liked users
+    dislikedBy: { type: [String], default: [], index:true }, // Track disliked users
+    comments: { type: [{ userId: String, username:String, comment: String }], default: [] },
     userId: { type: String, required: true },
+    approval: { type: Boolean, default: false }, // Approval field with default value false
   },
   { timestamps: true }
 );
 
-const Feedback = mongoose.model('Feedback', feedbackSchema);
+const Feedback = mongoose.model<FeedbackDocument>('Feedback', feedbackSchema);
 
 export default Feedback;
